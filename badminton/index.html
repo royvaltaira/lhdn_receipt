@@ -443,7 +443,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- YOUR FIREBASE CONFIGURATION ---
@@ -462,6 +462,7 @@
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
+            signInAnonymously(auth).catch(e => console.error("Silent Auth Error (Safe to ignore)", e));
         } catch (e) {
             console.error("Firebase init error", e);
         }
@@ -478,15 +479,12 @@
         let mediaStream = null; 
         let editingMatchId = null; 
         let confirmCallback = null; 
-        let firebaseUid = null;
 
         let unsubPlayers = null;
         let unsubEvents = null;
         let unsubMatches = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            initAuth();
-            
             document.getElementById('name-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const name = document.getElementById('user-name-input').value.trim();
@@ -503,24 +501,6 @@
             });
         });
 
-        async function initAuth() {
-            if (!auth) return;
-            try {
-                await signInAnonymously(auth);
-            } catch (e) {
-                console.error("Auth error", e);
-            }
-            
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    firebaseUid = user.uid;
-                } else {
-                    firebaseUid = null;
-                    clearListeners();
-                }
-            });
-        }
-
         function clearListeners() {
             if(unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
             if(unsubEvents) { unsubEvents(); unsubEvents = null; }
@@ -528,7 +508,6 @@
         }
 
         function setupRealtimeListeners() {
-            if (!auth.currentUser) return;
             clearListeners();
 
             unsubPlayers = onSnapshot(collection(db, publicPath, 'players'), (snapshot) => {
@@ -716,7 +695,7 @@
         };
 
         window.handleImport = async function(event) {
-            if (!auth.currentUser) return;
+            if (currentRole !== 'Admin') return;
             const file = event.target.files[0];
             if (!file) return;
 
@@ -883,7 +862,6 @@
         // --- SUBMIT PLAYER WITH PATIENT LOADING SPINNER ---
         document.getElementById('player-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { window.showToast("Auth needed", true); return; }
 
             const nameInput = document.getElementById('player-name');
             const teamInput = document.getElementById('player-team');
@@ -933,7 +911,7 @@
         });
 
         window.approvePlayer = async function(id) {
-            if (!auth.currentUser || currentRole !== 'Admin') return;
+            if (currentRole !== 'Admin') return;
             const player = appData.players.find(p => p.id === id);
             if (player) {
                 try {
@@ -944,7 +922,7 @@
         };
 
         window.rejectPlayer = async function(id) {
-            if (!auth.currentUser || currentRole !== 'Admin') return;
+            if (currentRole !== 'Admin') return;
             try {
                 await deleteDoc(doc(db, publicPath, 'players', id));
                 window.showToast("Player application rejected.");
@@ -952,7 +930,7 @@
         };
 
         window.deletePlayer = function(id) {
-            if (!auth.currentUser || currentRole !== 'Admin') { window.showToast("Only Admins can delete players.", true); return; }
+            if (currentRole !== 'Admin') { window.showToast("Only Admins can delete players.", true); return; }
             const hasMatches = appData.matches.some(m => m.team1.includes(id) || m.team2.includes(id));
             if (hasMatches) { window.showToast("Cannot delete: Player has recorded matches.", true); return; }
             const p = appData.players.find(p => p.id === id);
@@ -962,7 +940,7 @@
         };
 
         window.deleteEvent = function(id) {
-            if (!auth.currentUser || currentRole !== 'Admin') { window.showToast("Only Admins can delete events.", true); return; }
+            if (currentRole !== 'Admin') { window.showToast("Only Admins can delete events.", true); return; }
             const e = appData.events.find(e => e.id === id);
             window.openConfirm("Delete Event?", `Are you sure you want to delete "${e ? e.name : 'this event'}"? All associated matches will also be deleted.`, async () => {
                 try {
@@ -976,7 +954,6 @@
 
         document.getElementById('event-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) return;
             if (currentRole === 'Home Owner') {
                 const todayStr = new Date().toDateString();
                 const hasCreatedEventToday = appData.events.some(ev => ev.createdBy === currentUser && new Date(ev.date).toDateString() === todayStr);
@@ -997,7 +974,6 @@
 
         document.getElementById('match-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) return;
             const eventId = document.getElementById('match-event').value;
             if (!eventId) { window.showToast("Please select an event", true); return; }
             const type = document.querySelector('input[name="matchType"]:checked').value;
@@ -1048,7 +1024,6 @@
         };
 
         window.deleteMatch = function(id) {
-            if (!auth.currentUser) return;
             window.openConfirm("Delete Match?", "Are you sure you want to permanently delete this match record?", async () => {
                 try { await deleteDoc(doc(db, publicPath, 'matches', id)); window.showToast("Match deleted."); } catch(err) { window.showToast("Error deleting", true); }
             });
