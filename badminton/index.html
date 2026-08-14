@@ -7,6 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Bulletproof Firebase Compat Scripts (No Modules Required) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         .tab-content { display: none; }
@@ -32,7 +38,7 @@
             </div>
             
             <div id="auth-options" class="p-6 space-y-4">
-                <form id="name-form" class="space-y-4">
+                <form id="name-form" class="space-y-4" onsubmit="event.preventDefault(); window.handleNameSubmit();">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Display Name</label>
                         <input type="text" id="user-name-input" required class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" placeholder="e.g. John Doe">
@@ -441,11 +447,8 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <!-- Application Script (Bulletproof Version) -->
+    <script>
         // --- YOUR FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyAh3HZkHVuqILmhMAp4Z517HmWXO90N2QQ",
@@ -459,10 +462,10 @@
 
         let app, db, auth;
         try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            signInAnonymously(auth).catch(e => console.error("Silent Auth Error (Safe to ignore)", e));
+            app = firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            auth.signInAnonymously().catch(e => console.error("Safe Auth Warning:", e));
         } catch (e) {
             console.error("Firebase init error", e);
         }
@@ -484,22 +487,20 @@
         let unsubEvents = null;
         let unsubMatches = null;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('name-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const name = document.getElementById('user-name-input').value.trim();
-                const codeInput = document.getElementById('league-code-input').value.trim().toUpperCase();
-                
-                leagueCode = codeInput || "PUBLIC";
-                publicPath = `badminton-social/leagues/${leagueCode}`;
+        // --- INSTANT LOGIN HANDLER ---
+        window.handleNameSubmit = function() {
+            const name = document.getElementById('user-name-input').value.trim();
+            const codeInput = document.getElementById('league-code-input').value.trim().toUpperCase();
+            
+            leagueCode = codeInput || "PUBLIC";
+            publicPath = `badminton-social/leagues/${leagueCode}`;
 
-                if (name) {
-                    tempLoginName = name;
-                    document.getElementById('auth-options').classList.add('hidden');
-                    document.getElementById('role-section').classList.remove('hidden');
-                }
-            });
-        });
+            if (name) {
+                tempLoginName = name;
+                document.getElementById('auth-options').classList.add('hidden');
+                document.getElementById('role-section').classList.remove('hidden');
+            }
+        };
 
         function clearListeners() {
             if(unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
@@ -508,21 +509,22 @@
         }
 
         function setupRealtimeListeners() {
+            if (!db) return;
             clearListeners();
 
-            unsubPlayers = onSnapshot(collection(db, publicPath, 'players'), (snapshot) => {
+            unsubPlayers = db.collection(publicPath + '/players').onSnapshot((snapshot) => {
                 appData.players = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                 renderPlayers();
                 renderLeaderboard();
             }, (error) => console.error("Player sync error", error));
 
-            unsubEvents = onSnapshot(collection(db, publicPath, 'events'), (snapshot) => {
+            unsubEvents = db.collection(publicPath + '/events').onSnapshot((snapshot) => {
                 appData.events = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                 renderEvents();
                 renderMatchHistory();
             }, (error) => console.error("Event sync error", error));
 
-            unsubMatches = onSnapshot(collection(db, publicPath, 'matches'), (snapshot) => {
+            unsubMatches = db.collection(publicPath + '/matches').onSnapshot((snapshot) => {
                 appData.matches = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
                 renderMatchHistory();
                 renderLeaderboard();
@@ -604,8 +606,8 @@
             currentUser = tempLoginName || "Guest";
             currentRole = role;
             
-            setupRealtimeListeners();
-            showAppUI();
+            showAppUI(); // UI changes INSTANTLY
+            setupRealtimeListeners(); // Database syncs silently in background
         }
 
         function showAppUI() {
@@ -629,7 +631,7 @@
             renderAll();
         }
 
-        window.logout = async function() {
+        window.logout = function() {
             currentUser = null;
             currentRole = null;
             tempLoginName = "";
@@ -707,15 +709,15 @@
                         window.showToast("Restoring cloud backup...");
                         for (const p of importedData.players) {
                             const { id, ...rest } = p;
-                            await setDoc(doc(db, publicPath, 'players', id), rest);
+                            await db.collection(publicPath + '/players').doc(id).set(rest);
                         }
                         for (const ev of importedData.events) {
                             const { id, ...rest } = ev;
-                            await setDoc(doc(db, publicPath, 'events', id), rest);
+                            await db.collection(publicPath + '/events').doc(id).set(rest);
                         }
                         for (const m of importedData.matches) {
                             const { id, ...rest } = m;
-                            await setDoc(doc(db, publicPath, 'matches', id), rest);
+                            await db.collection(publicPath + '/matches').doc(id).set(rest);
                         }
                         window.showToast("Data restored securely to Cloud!");
                         window.closeAdminSettings();
@@ -882,7 +884,7 @@
                 submitBtn.classList.replace('bg-indigo-600', 'bg-indigo-400');
                 
                 try {
-                    await addDoc(collection(db, publicPath, 'players'), {
+                    await db.collection(publicPath + '/players').add({
                         name: name,
                         team: team,
                         info: info,
@@ -915,7 +917,7 @@
             const player = appData.players.find(p => p.id === id);
             if (player) {
                 try {
-                    await setDoc(doc(db, publicPath, 'players', id), { ...player, status: 'approved' });
+                    await db.collection(publicPath + '/players').doc(id).set({ ...player, status: 'approved' });
                     window.showToast("Player approved!");
                 } catch(err) { window.showToast("Error approving", true); }
             }
@@ -924,7 +926,7 @@
         window.rejectPlayer = async function(id) {
             if (currentRole !== 'Admin') return;
             try {
-                await deleteDoc(doc(db, publicPath, 'players', id));
+                await db.collection(publicPath + '/players').doc(id).delete();
                 window.showToast("Player application rejected.");
             } catch(err) { window.showToast("Error rejecting", true); }
         };
@@ -935,7 +937,7 @@
             if (hasMatches) { window.showToast("Cannot delete: Player has recorded matches.", true); return; }
             const p = appData.players.find(p => p.id === id);
             window.openConfirm("Delete Player?", `Are you sure you want to remove ${p ? p.name : 'this player'} from the roster?`, async () => {
-                try { await deleteDoc(doc(db, publicPath, 'players', id)); window.showToast("Player deleted."); } catch(err) { window.showToast("Error deleting", true); }
+                try { await db.collection(publicPath + '/players').doc(id).delete(); window.showToast("Player deleted."); } catch(err) { window.showToast("Error deleting", true); }
             });
         };
 
@@ -945,8 +947,8 @@
             window.openConfirm("Delete Event?", `Are you sure you want to delete "${e ? e.name : 'this event'}"? All associated matches will also be deleted.`, async () => {
                 try {
                     const matchesToDelete = appData.matches.filter(m => m.eventId === id);
-                    for (const m of matchesToDelete) await deleteDoc(doc(db, publicPath, 'matches', m.id));
-                    await deleteDoc(doc(db, publicPath, 'events', id));
+                    for (const m of matchesToDelete) await db.collection(publicPath + '/matches').doc(m.id).delete();
+                    await db.collection(publicPath + '/events').doc(id).delete();
                     window.showToast(`Event deleted along with associated matches.`);
                 } catch(err) { window.showToast("Error deleting event", true); }
             });
@@ -964,7 +966,7 @@
             const shuttles = document.getElementById('event-shuttles').value;
             if (name && date) {
                 try {
-                    await addDoc(collection(db, publicPath, 'events'), { name: name, date: date, shuttles: shuttles || 0, createdBy: currentUser });
+                    await db.collection(publicPath + '/events').add({ name: name, date: date, shuttles: shuttles || 0, createdBy: currentUser });
                     document.getElementById('event-name').value = ''; document.getElementById('event-shuttles').value = '';
                     window.showToast("Event created successfully!");
                     window.switchTab('matches');
@@ -993,8 +995,8 @@
             }
             const payload = { eventId, type, team1, team2, sets };
             try {
-                if (editingMatchId) { await setDoc(doc(db, publicPath, 'matches', editingMatchId), payload); window.showToast("Match updated in cloud!"); window.cancelEditMatch(); }
-                else { await addDoc(collection(db, publicPath, 'matches'), payload); window.showToast("Match saved to cloud!"); }
+                if (editingMatchId) { await db.collection(publicPath + '/matches').doc(editingMatchId).set(payload); window.showToast("Match updated in cloud!"); window.cancelEditMatch(); }
+                else { await db.collection(publicPath + '/matches').add(payload); window.showToast("Match saved to cloud!"); }
                 for (let i = 1; i <= 3; i++) { document.getElementById(`s${i}-t1`).value = ''; document.getElementById(`s${i}-t2`).value = ''; }
             } catch(err) { window.showToast("Error communicating with cloud.", true); }
         });
@@ -1025,7 +1027,7 @@
 
         window.deleteMatch = function(id) {
             window.openConfirm("Delete Match?", "Are you sure you want to permanently delete this match record?", async () => {
-                try { await deleteDoc(doc(db, publicPath, 'matches', id)); window.showToast("Match deleted."); } catch(err) { window.showToast("Error deleting", true); }
+                try { await db.collection(publicPath + '/matches').doc(id).delete(); window.showToast("Match deleted."); } catch(err) { window.showToast("Error deleting", true); }
             });
         };
 
