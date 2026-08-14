@@ -430,9 +430,34 @@
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Setup environment variables
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'badminton-social';
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-        const firebaseConfig = JSON.parse(firebaseConfigStr);
+        const appId = 'badminton-social-custom';
+        
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAh3HZkHVuqILmhMAp4Z517HmWXO90N2QQ",
+  authDomain: "badminton-tracker-82eca.firebaseapp.com",
+  projectId: "badminton-tracker-82eca",
+  storageBucket: "badminton-tracker-82eca.firebasestorage.app",
+  messagingSenderId: "237668341008",
+  appId: "1:237668341008:web:44fd43ea8665d05fd40195"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+        const firebaseConfig = {
+            apiKey: "AIzaSyYOUR_REAL_KEY_HERE...",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+        // ----------------------------------------------
 
         let app, db, auth;
         try {
@@ -490,6 +515,7 @@
                 }
             } catch (e) {
                 console.error("Auth error", e);
+                window.showToast("Cloud Auth Error. Make sure 'Anonymous' Sign-in is enabled in Firebase.", true);
             }
             
             onAuthStateChanged(auth, async (user) => {
