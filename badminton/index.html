@@ -371,6 +371,18 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
+    <!-- Success Modal Pop-up -->
+    <div id="success-modal" class="fixed inset-0 bg-slate-900/60 z-[90] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden text-center p-6 transform scale-95 transition-transform duration-300" id="success-modal-content">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="ph-fill ph-check-circle text-3xl"></i>
+            </div>
+            <h3 id="success-title" class="text-xl font-bold text-slate-800 mb-2">Success!</h3>
+            <p id="success-message" class="text-slate-500 text-sm mb-6">Your application has been submitted successfully.</p>
+            <button onclick="closeSuccessModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-md">OK</button>
+        </div>
+    </div>
+
     <!-- General Confirmation Modal -->
     <div id="confirm-overlay" class="fixed inset-0 bg-slate-900/60 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
@@ -426,7 +438,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = 'badminton-social';
@@ -600,10 +612,8 @@
             currentUser = tempLoginName || "Guest";
             currentRole = role;
             
-            // Instantly transition UI for zero lag
             showAppUI();
 
-            // Sync to cloud in background
             if (firebaseUid && db) {
                 setDoc(doc(db, publicPath, 'profiles', firebaseUid), {
                     name: currentUser,
@@ -630,9 +640,7 @@
             renderAll();
         }
 
-        window.logout = function() {
-            const uidToClean = firebaseUid;
-            
+        window.logout = async function() {
             currentUser = null;
             currentRole = null;
             tempLoginName = "";
@@ -650,14 +658,26 @@
             document.getElementById('auth-options').classList.remove('hidden');
             document.getElementById('admin-settings-btn').classList.add('hidden');
 
-            if (uidToClean && db) {
-                deleteDoc(doc(db, publicPath, 'profiles', uidToClean)).catch(e => console.error(e));
+            if (auth) {
+                try {
+                    await signOut(auth);
+                    await signInAnonymously(auth);
+                } catch(e) { console.error(e); }
             }
         };
 
         function getPlayerName(id) {
             const p = appData.players.find(p => p.id === id);
             return p ? p.name : 'Unknown';
+        }
+
+        function getPlayerDisplay(id) {
+            const p = appData.players.find(p => p.id === id);
+            if (!p) return 'Unknown';
+            if (p.team) {
+                return `${p.name} <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded ml-1">[${p.team}]</span>`;
+            }
+            return p.name;
         }
 
         function getEventInfo(id) {
@@ -755,6 +775,21 @@
             if (confirmCallback) await confirmCallback();
             window.closeConfirm();
         });
+
+        // --- SUCCESS MODAL UTILITY ---
+        window.openSuccessModal = function(title, message) {
+            document.getElementById('success-title').textContent = title;
+            document.getElementById('success-message').textContent = message;
+            const modal = document.getElementById('success-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeSuccessModal = function() {
+            const modal = document.getElementById('success-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
 
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -906,8 +941,11 @@
                     nameInput.value = ''; teamInput.value = ''; infoInput.value = '';
                     window.clearPicture();
                     
-                    if (status === 'approved') window.showToast("Player added successfully!");
-                    else window.showToast("Profile submitted! Awaiting Admin approval.");
+                    if (status === 'approved') {
+                        window.openSuccessModal("Player Added!", `"${name}" has been successfully added to the active roster.`);
+                    } else {
+                        window.openSuccessModal("Application Submitted!", "Your profile has been submitted successfully and is awaiting Admin approval.");
+                    }
                 } catch(err) {
                     console.error(err);
                     window.showToast("Failed to save player to cloud", true);
@@ -1226,7 +1264,7 @@
             });
 
             const optionsHtml = '<option value="">-- Select --</option>' + 
-                approvedPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                approvedPlayers.map(p => `<option value="${p.id}">${p.name} ${p.team ? '('+p.team+')' : ''}</option>`).join('');
             
             ['t1-p1', 't1-p2', 't2-p1', 't2-p2'].forEach(id => {
                 const sel = document.getElementById(id);
@@ -1309,8 +1347,13 @@
             [...appData.matches].reverse().forEach(m => {
                 const event = getEventInfo(m.eventId);
                 
-                const t1Names = m.team1.map(getPlayerName).join(' & ');
-                const t2Names = m.team2.map(getPlayerName).join(' & ');
+                // Format event name together with date
+                const eventDateObj = event.date ? new Date(event.date) : null;
+                const eventDateStr = eventDateObj && !isNaN(eventDateObj) ? eventDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                const eventBadgeLabel = eventDateStr ? `${event.name} (${eventDateStr})` : event.name;
+
+                const t1Names = m.team1.map(getPlayerDisplay).join(' & ');
+                const t2Names = m.team2.map(getPlayerDisplay).join(' & ');
                 
                 let t1SetsWon = 0; let t2SetsWon = 0;
                 let scoresHtml = m.sets.map(s => {
@@ -1342,7 +1385,7 @@
                 div.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm";
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-3 text-xs text-slate-500 border-b border-slate-100 pb-2">
-                        <span class="flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium"><i class="ph-fill ph-tag"></i> ${event.name}</span>
+                        <span class="flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium"><i class="ph-fill ph-tag"></i> ${eventBadgeLabel}</span>
                         <div class="flex items-center">
                             <span class="uppercase tracking-wider font-semibold">${m.type}</span>
                             ${actionBtnsHtml}
@@ -1350,7 +1393,7 @@
                     </div>
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div class="flex-1 text-center sm:text-right w-full">
-                            <span class="${t1Winner ? 'font-bold text-blue-700' : 'text-slate-600'} block truncate">${t1Names}</span>
+                            <span class="${t1Winner ? 'font-bold text-blue-700' : 'text-slate-600'} block">${t1Names}</span>
                         </div>
                         
                         <div class="flex items-center justify-center gap-1 shrink-0 overflow-x-auto max-w-full pb-1 sm:pb-0 hide-scrollbar">
@@ -1358,7 +1401,7 @@
                         </div>
 
                         <div class="flex-1 text-center sm:text-left w-full">
-                            <span class="${t2Winner ? 'font-bold text-rose-700' : 'text-slate-600'} block truncate">${t2Names}</span>
+                            <span class="${t2Winner ? 'font-bold text-rose-700' : 'text-slate-600'} block">${t2Names}</span>
                         </div>
                     </div>
                 `;
@@ -1379,7 +1422,7 @@
 
             let stats = {};
             appData.players.filter(p => p.status === 'approved' || !p.status).forEach(p => {
-                stats[p.id] = { id: p.id, name: p.name, picture: p.picture, matchesWon: 0, matchesPlayed: 0 };
+                stats[p.id] = { id: p.id, name: p.name, picture: p.picture, team: p.team, matchesWon: 0, matchesPlayed: 0 };
             });
 
             appData.matches.forEach(m => {
@@ -1431,11 +1474,16 @@
                     ? `<img src="${s.picture}" class="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border border-slate-200 inline-block mr-2">`
                     : `<div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs inline-flex mr-2">${s.name.charAt(0).toUpperCase()}</div>`;
 
+                const teamSpan = s.team ? `<span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded ml-2">[${s.team}]</span>` : '';
+
                 tr.innerHTML = `
                     <td class="p-3 border-b border-slate-100 text-center align-middle">${badge}</td>
                     <td class="p-3 border-b border-slate-100 flex items-center pt-4">
                         ${avatarHtml}
-                        <span class="font-bold text-slate-800 ${isTop3 ? 'text-lg' : ''}">${s.name}</span>
+                        <div>
+                            <span class="font-bold text-slate-800 ${isTop3 ? 'text-lg' : ''}">${s.name}</span>
+                            ${teamSpan}
+                        </div>
                     </td>
                     <td class="p-3 border-b border-slate-100 text-center">
                         <span class="inline-flex items-center justify-center px-2 py-1 rounded bg-slate-100 text-slate-700 font-medium text-sm">
