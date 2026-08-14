@@ -931,11 +931,12 @@
                 const status = currentRole === 'Admin' ? 'approved' : 'pending';
                 
                 try {
-                    // Show loading state
+                    // 1. Show loading state & disable button
                     submitBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Saving...';
                     submitBtn.disabled = true;
 
-                    await addDoc(collection(db, publicPath, 'players'), {
+                    // 2. Attempt to save to Firebase with a 5-second timeout safety net
+                    const savePromise = addDoc(collection(db, publicPath, 'players'), {
                         name: name,
                         team: team,
                         info: info,
@@ -943,23 +944,39 @@
                         status: status
                     });
                     
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error("Timeout")), 5000)
+                    );
+
+                    // This will force an error if Firebase ignores the request for 5 seconds
+                    await Promise.race([savePromise, timeoutPromise]);
+                    
+                    // 3. If successful, clear the form
                     nameInput.value = ''; teamInput.value = ''; infoInput.value = '';
                     window.clearPicture();
                     
-                    // Reset button
+                    // 4. Reset the button text back to normal
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
                     
+                    // 5. Trigger the Success Pop-up Modal
                     if (status === 'approved') {
                         window.openSuccessModal("Player Added!", `"${name}" has been successfully added to the active roster.`);
                     } else {
                         window.openSuccessModal("Application Submitted!", "Your profile has been submitted successfully and is awaiting Admin approval.");
                     }
+
                 } catch(err) {
                     console.error(err);
+                    // Reset the button if it fails
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
-                    window.showToast("Failed to save player to cloud", true);
+                    
+                    if (err.message === "Timeout") {
+                        window.showToast("Cloud Timeout: Please check your Firestore Security Rules.", true);
+                    } else {
+                        window.showToast("Failed to save player to cloud.", true);
+                    }
                 }
             }
         });
