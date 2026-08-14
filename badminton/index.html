@@ -431,7 +431,7 @@
 
         const appId = 'badminton-social';
 
-        // --- I HAVE ADDED YOUR FIREBASE CONFIGURATION HERE FOR YOU ---
+        // --- YOUR DEDICATED FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyAh3HZkHVuqILmhMAp4Z517HmWXO90N2QQ",
             authDomain: "badminton-tracker-82eca.firebaseapp.com",
@@ -440,7 +440,7 @@
             messagingSenderId: "237668341008",
             appId: "1:237668341008:web:44fd43ea8665d05fd40195"
         };
-        // -----------------------------------------------------------
+        // ----------------------------------------------
 
         let app, db, auth;
         try {
@@ -453,12 +453,7 @@
 
         const publicPath = `artifacts/${appId}/public/data`;
 
-        // --- DATA STATE (Synced with Firebase) ---
-        let appData = {
-            players: [],
-            events: [],
-            matches: []
-        };
+        let appData = { players: [], events: [], matches: [] };
         let currentUser = null;
         let currentRole = null;
         let tempLoginName = "";
@@ -473,7 +468,6 @@
         let unsubEvents = null;
         let unsubMatches = null;
 
-        // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             initAuth();
             
@@ -491,27 +485,14 @@
         async function initAuth() {
             if (!auth) return;
             try {
-                // Since you are hosting this on royval.my, we strictly use Anonymous Login
                 await signInAnonymously(auth);
             } catch (e) {
                 console.error("Auth error", e);
-                window.showToast("Cloud Connection Error. Ensure 'Anonymous' Auth is enabled in Firebase.", true);
             }
             
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     firebaseUid = user.uid;
-                    // Check if they already have an active profile session
-                    try {
-                        const profileSnap = await getDoc(doc(db, publicPath, 'profiles', firebaseUid));
-                        if (profileSnap.exists()) {
-                            const data = profileSnap.data();
-                            currentUser = data.name;
-                            currentRole = data.role;
-                            showAppUI();
-                        }
-                    } catch(e) { console.error(e); }
-                    
                     setupRealtimeListeners();
                 } else {
                     firebaseUid = null;
@@ -574,7 +555,6 @@
             }
         }
 
-        // --- AUTHENTICATION LOGIC ---
         window.backToName = function() {
             document.getElementById('role-section').classList.add('hidden');
             document.getElementById('auth-options').classList.remove('hidden');
@@ -616,22 +596,20 @@
             }
         };
 
-        async function completeLogin(role) {
-            if (!firebaseUid) {
-                window.showToast('Authentication connecting, please wait...', true);
-                return;
-            }
-            currentUser = tempLoginName;
+        function completeLogin(role) {
+            currentUser = tempLoginName || "Guest";
             currentRole = role;
             
-            try {
-                await setDoc(doc(db, publicPath, 'profiles', firebaseUid), {
+            // Instantly transition UI for zero lag
+            showAppUI();
+
+            // Sync to cloud in background
+            if (firebaseUid && db) {
+                setDoc(doc(db, publicPath, 'profiles', firebaseUid), {
                     name: currentUser,
                     role: currentRole
-                });
-            } catch(e) { console.error("Error saving profile", e); }
-            
-            showAppUI();
+                }).catch(e => console.error("Profile sync error", e));
+            }
         }
 
         function showAppUI() {
@@ -652,12 +630,9 @@
             renderAll();
         }
 
-        window.logout = async function() {
-            if (firebaseUid) {
-                try {
-                    await deleteDoc(doc(db, publicPath, 'profiles', firebaseUid));
-                } catch(e) { console.error(e); }
-            }
+        window.logout = function() {
+            const uidToClean = firebaseUid;
+            
             currentUser = null;
             currentRole = null;
             tempLoginName = "";
@@ -674,6 +649,10 @@
             document.getElementById('password-section').classList.add('hidden');
             document.getElementById('auth-options').classList.remove('hidden');
             document.getElementById('admin-settings-btn').classList.add('hidden');
+
+            if (uidToClean && db) {
+                deleteDoc(doc(db, publicPath, 'profiles', uidToClean)).catch(e => console.error(e));
+            }
         };
 
         function getPlayerName(id) {
@@ -686,7 +665,6 @@
             return e ? e : { name: 'Unknown Event', date: '' };
         }
 
-        // --- EXPORT & IMPORT ---
         window.openAdminSettings = function() {
             const overlay = document.getElementById('settings-overlay');
             overlay.classList.remove('hidden');
@@ -753,10 +731,9 @@
                 }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Reset input
+            event.target.value = '';
         };
 
-        // --- CONFIRMATION MODAL ---
         window.openConfirm = function(title, message, callback) {
             document.getElementById('confirm-title').textContent = title;
             document.getElementById('confirm-message').textContent = message;
@@ -779,7 +756,6 @@
             window.closeConfirm();
         });
 
-        // --- UI UTILITIES ---
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => {
@@ -837,7 +813,6 @@
             if(sets < 3) { document.getElementById('s3-t1').value = ''; document.getElementById('s3-t2').value = ''; }
         };
 
-        // --- CAMERA FORM HANDLERS ---
         document.getElementById('player-picture').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -887,7 +862,6 @@
             
             ctx.drawImage(video, x, y, size, size, 0, 0, size, size);
             
-            // Standard small size base64 to easily save in Firestore
             tempPlayerPicture = canvas.toDataURL('image/jpeg', 0.8);
             showPicturePreview();
             window.closeCamera();
@@ -906,7 +880,6 @@
             document.getElementById('picture-preview-container').classList.add('hidden');
         };
 
-        // Add Player
         document.getElementById('player-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!auth.currentUser) { window.showToast("Auth needed", true); return; }
@@ -1009,7 +982,6 @@
             );
         };
 
-        // Add Event
         document.getElementById('event-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!auth.currentUser) return;
@@ -1048,7 +1020,6 @@
             }
         });
 
-        // Add / Update Match
         document.getElementById('match-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!auth.currentUser) return;
@@ -1166,7 +1137,6 @@
             );
         };
 
-        // --- RENDERING VIEWS ---
         function renderAll() {
             renderPlayers();
             renderEvents();
