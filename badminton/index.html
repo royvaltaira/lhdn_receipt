@@ -666,11 +666,6 @@
             }
         };
 
-        function getPlayerName(id) {
-            const p = appData.players.find(p => p.id === id);
-            return p ? p.name : 'Unknown';
-        }
-
         function getPlayerDisplay(id) {
             const p = appData.players.find(p => p.id === id);
             if (!p) return 'Unknown';
@@ -781,14 +776,18 @@
             document.getElementById('success-title').textContent = title;
             document.getElementById('success-message').textContent = message;
             const modal = document.getElementById('success-modal');
+            
+            // Proper Tailwind way to toggle visibility
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            modal.style.display = ''; // Clean up any inline styles
         };
 
         window.closeSuccessModal = function() {
             const modal = document.getElementById('success-modal');
-            modal.classList.add('hidden');
             modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            modal.style.display = ''; // Clean up any inline styles
         };
 
         window.switchTab = function(tabId) {
@@ -925,11 +924,17 @@
             const name = nameInput.value.trim();
             const team = teamInput.value.trim();
             const info = infoInput.value.trim();
+            const submitBtn = document.getElementById('player-submit-btn');
+            const originalBtnText = submitBtn.innerHTML;
             
             if (name) {
                 const status = currentRole === 'Admin' ? 'approved' : 'pending';
                 
                 try {
+                    // Show loading state
+                    submitBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Saving...';
+                    submitBtn.disabled = true;
+
                     await addDoc(collection(db, publicPath, 'players'), {
                         name: name,
                         team: team,
@@ -941,6 +946,10 @@
                     nameInput.value = ''; teamInput.value = ''; infoInput.value = '';
                     window.clearPicture();
                     
+                    // Reset button
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                    
                     if (status === 'approved') {
                         window.openSuccessModal("Player Added!", `"${name}" has been successfully added to the active roster.`);
                     } else {
@@ -948,6 +957,8 @@
                     }
                 } catch(err) {
                     console.error(err);
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
                     window.showToast("Failed to save player to cloud", true);
                 }
             }
