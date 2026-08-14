@@ -29,11 +29,21 @@
                 <p class="text-indigo-200 mt-2 text-sm">Track matches, events, and leaderboards</p>
             </div>
             
-            <div id="auth-options" class="p-6 space-y-3">
-                <p class="text-center text-sm text-slate-500 mb-4">Enter your display name to begin</p>
+            <div id="auth-options" class="p-6">
+                <p class="text-center text-sm text-slate-500 mb-6">Enter your details to begin</p>
                 <form id="name-form" class="space-y-4">
-                    <input type="text" id="user-name-input" required class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" placeholder="e.g. John Doe">
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-md">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 ml-1">Display Name</label>
+                        <input type="text" id="user-name-input" required class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" placeholder="e.g. John Doe">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 ml-1 flex justify-between">
+                            <span>League Code</span>
+                            <span class="text-slate-400 font-normal normal-case">(Optional)</span>
+                        </label>
+                        <input type="text" id="group-code-input" class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow font-mono uppercase text-indigo-700 font-bold" placeholder="e.g. AVENGERS">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-md mt-2">
                         Continue
                     </button>
                 </form>
@@ -74,7 +84,10 @@
             <div class="max-w-4xl mx-auto w-full px-4 py-3 flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <i class="ph-fill ph-tennis-ball text-2xl"></i>
-                    <h1 class="font-bold text-lg hidden sm:block">Badminton Social</h1>
+                    <div>
+                        <h1 class="font-bold text-lg hidden sm:block leading-tight">Badminton Social</h1>
+                        <div id="header-league-code" class="text-[10px] text-indigo-200 font-bold tracking-widest uppercase flex items-center gap-1"><i class="ph-fill ph-users-three"></i> LOBBY</div>
+                    </div>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2 bg-indigo-700/50 px-3 py-1.5 rounded-full text-sm">
@@ -311,7 +324,7 @@
                 <div id="tab-players" class="tab-content h-full space-y-6">
                     <div id="player-form-container" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
                         <h2 id="player-form-title" class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <i class="ph-fill ph-user-plus text-indigo-500"></i> Add Player Directly
+                            <i class="ph-fill ph-user-plus text-indigo-500"></i> Join Roster
                         </h2>
                         <form id="player-form" class="space-y-4">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -342,7 +355,7 @@
                                 </div>
                             </div>
                             <button type="submit" id="player-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-colors shadow-md">
-                                Add Player
+                                Submit Application
                             </button>
                         </form>
                     </div>
@@ -372,8 +385,8 @@
     <div id="toast-container" class="fixed bottom-4 right-4 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- Success Modal Pop-up -->
-    <div id="success-modal" class="fixed inset-0 bg-slate-900/60 z-[90] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden text-center p-6 transform scale-95 transition-transform duration-300" id="success-modal-content">
+    <div id="success-modal" class="fixed inset-0 bg-slate-900/60 z-[90] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden text-center p-6 transform transition-transform duration-300" id="success-modal-content">
             <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="ph-fill ph-check-circle text-3xl"></i>
             </div>
@@ -384,7 +397,7 @@
     </div>
 
     <!-- General Confirmation Modal -->
-    <div id="confirm-overlay" class="fixed inset-0 bg-slate-900/60 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div id="confirm-overlay" class="fixed inset-0 bg-slate-900/60 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity" style="display: none;">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
             <div class="p-6 text-center">
                 <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -401,7 +414,7 @@
     </div>
 
     <!-- Admin Settings Modal -->
-    <div id="settings-overlay" class="fixed inset-0 bg-slate-900/60 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div id="settings-overlay" class="fixed inset-0 bg-slate-900/60 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity" style="display: none;">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
             <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="font-bold text-lg flex items-center gap-2 text-slate-800"><i class="ph-fill ph-database text-indigo-500"></i> Data Management</h3>
@@ -420,7 +433,7 @@
     </div>
 
     <!-- Camera Overlay -->
-    <div id="camera-overlay" class="fixed inset-0 bg-slate-900/95 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+    <div id="camera-overlay" class="fixed inset-0 bg-slate-900/95 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity" style="display: none;">
         <div class="bg-white p-5 rounded-2xl w-full max-w-sm flex flex-col gap-4 shadow-2xl">
             <div class="flex justify-between items-center">
                 <h3 class="font-bold text-lg flex items-center gap-2"><i class="ph-fill ph-camera text-indigo-500"></i> Take Photo</h3>
@@ -441,9 +454,7 @@
         import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = 'badminton-social';
-
-        // --- YOUR DEDICATED FIREBASE CONFIGURATION ---
+        // --- PASTE YOUR FIREBASE CONFIGURATION HERE ---
         const firebaseConfig = {
             apiKey: "AIzaSyAh3HZkHVuqILmhMAp4Z517HmWXO90N2QQ",
             authDomain: "badminton-tracker-82eca.firebaseapp.com",
@@ -463,9 +474,14 @@
             console.error("Firebase init error", e);
         }
 
-        const publicPath = `artifacts/${appId}/public/data`;
+        let publicPath = "";
 
-        let appData = { players: [], events: [], matches: [] };
+        // --- DATA STATE (Synced with Firebase) ---
+        let appData = {
+            players: [],
+            events: [],
+            matches: []
+        };
         let currentUser = null;
         let currentRole = null;
         let tempLoginName = "";
@@ -480,14 +496,29 @@
         let unsubEvents = null;
         let unsubMatches = null;
 
+        // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             initAuth();
             
             document.getElementById('name-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const name = document.getElementById('user-name-input').value.trim();
+                const rawCode = document.getElementById('group-code-input').value.trim();
+
                 if (name) {
                     tempLoginName = name;
+                    
+                    // Format the code securely for the database path
+                    const safeCode = rawCode ? rawCode.toLowerCase().replace(/[^a-z0-9]/g, '') : 'public';
+                    publicPath = `artifacts/badminton-${safeCode}/public/data`;
+                    
+                    // Display the group code in the header
+                    document.getElementById('header-league-code').innerHTML = `<i class="ph-fill ph-users-three"></i> ${rawCode ? rawCode.toUpperCase() : 'PUBLIC LOBBY'}`;
+                    
+                    // Setup listeners now that we know the path
+                    cleanupListeners(); 
+                    setupRealtimeListeners();
+                    
                     document.getElementById('auth-options').classList.add('hidden');
                     document.getElementById('role-section').classList.remove('hidden');
                 }
@@ -505,18 +536,21 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     firebaseUid = user.uid;
-                    setupRealtimeListeners();
                 } else {
                     firebaseUid = null;
-                    if(unsubPlayers) unsubPlayers();
-                    if(unsubEvents) unsubEvents();
-                    if(unsubMatches) unsubMatches();
+                    cleanupListeners();
                 }
             });
         }
 
+        function cleanupListeners() {
+            if(unsubPlayers) unsubPlayers();
+            if(unsubEvents) unsubEvents();
+            if(unsubMatches) unsubMatches();
+        }
+
         function setupRealtimeListeners() {
-            if (!auth.currentUser) return;
+            if (!auth.currentUser || !publicPath) return;
 
             unsubPlayers = onSnapshot(collection(db, publicPath, 'players'), (snapshot) => {
                 appData.players = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
@@ -567,9 +601,11 @@
             }
         }
 
+        // --- AUTHENTICATION LOGIC ---
         window.backToName = function() {
             document.getElementById('role-section').classList.add('hidden');
             document.getElementById('auth-options').classList.remove('hidden');
+            cleanupListeners(); // Stop syncing if they go back to change group code
         };
 
         window.selectRole = function(role) {
@@ -608,13 +644,14 @@
             }
         };
 
-        function completeLogin(role) {
+        async function completeLogin(role) {
             currentUser = tempLoginName || "Guest";
             currentRole = role;
             
             showAppUI();
 
-            if (firebaseUid && db) {
+            // Fire and forget profile save (don't let it block login)
+            if (firebaseUid && db && publicPath) {
                 setDoc(doc(db, publicPath, 'profiles', firebaseUid), {
                     name: currentUser,
                     role: currentRole
@@ -641,13 +678,16 @@
         }
 
         window.logout = async function() {
+            // Instantly clear UI state to prevent hanging
             currentUser = null;
             currentRole = null;
             tempLoginName = "";
             pendingRole = "";
+            publicPath = "";
             
             document.getElementById('user-name-input').value = '';
             document.getElementById('admin-password').value = '';
+            document.getElementById('group-code-input').value = '';
             
             document.getElementById('app-container').classList.add('hidden');
             document.getElementById('app-container').classList.remove('flex');
@@ -658,9 +698,12 @@
             document.getElementById('auth-options').classList.remove('hidden');
             document.getElementById('admin-settings-btn').classList.add('hidden');
 
+            cleanupListeners();
+
             if (auth) {
                 try {
                     await signOut(auth);
+                    // Automatically re-auth anonymously for the next session
                     await signInAnonymously(auth);
                 } catch(e) { console.error(e); }
             }
@@ -680,16 +723,17 @@
             return e ? e : { name: 'Unknown Event', date: '' };
         }
 
+        // --- EXPORT & IMPORT ---
         window.openAdminSettings = function() {
             const overlay = document.getElementById('settings-overlay');
             overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            overlay.style.display = 'flex';
         };
 
         window.closeAdminSettings = function() {
             const overlay = document.getElementById('settings-overlay');
             overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
+            overlay.style.display = 'none';
         };
 
         window.exportData = function() {
@@ -712,7 +756,7 @@
         };
 
         window.handleImport = async function(event) {
-            if (!auth.currentUser) return;
+            if (!auth.currentUser || !publicPath) return;
             const file = event.target.files[0];
             if (!file) return;
 
@@ -746,9 +790,10 @@
                 }
             };
             reader.readAsText(file);
-            event.target.value = '';
+            event.target.value = ''; // Reset input
         };
 
+        // --- CONFIRMATION MODAL ---
         window.openConfirm = function(title, message, callback) {
             document.getElementById('confirm-title').textContent = title;
             document.getElementById('confirm-message').textContent = message;
@@ -756,13 +801,13 @@
             
             const overlay = document.getElementById('confirm-overlay');
             overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            overlay.style.display = 'flex';
         };
 
         window.closeConfirm = function() {
             const overlay = document.getElementById('confirm-overlay');
             overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
+            overlay.style.display = 'none';
             confirmCallback = null;
         };
 
@@ -771,25 +816,7 @@
             window.closeConfirm();
         });
 
-        // --- SUCCESS MODAL UTILITY ---
-        window.openSuccessModal = function(title, message) {
-            document.getElementById('success-title').textContent = title;
-            document.getElementById('success-message').textContent = message;
-            const modal = document.getElementById('success-modal');
-            
-            // Proper Tailwind way to toggle visibility
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            modal.style.display = ''; // Clean up any inline styles
-        };
-
-        window.closeSuccessModal = function() {
-            const modal = document.getElementById('success-modal');
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-            modal.style.display = ''; // Clean up any inline styles
-        };
-
+        // --- UI UTILITIES ---
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => {
@@ -847,6 +874,7 @@
             if(sets < 3) { document.getElementById('s3-t1').value = ''; document.getElementById('s3-t2').value = ''; }
         };
 
+        // --- CAMERA FORM HANDLERS ---
         document.getElementById('player-picture').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -862,7 +890,7 @@
         window.openCamera = async function() {
             const overlay = document.getElementById('camera-overlay');
             overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            overlay.style.display = 'flex';
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 document.getElementById('camera-feed').srcObject = mediaStream;
@@ -875,7 +903,7 @@
         window.closeCamera = function() {
             const overlay = document.getElementById('camera-overlay');
             overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
+            overlay.style.display = 'none';
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
@@ -896,6 +924,7 @@
             
             ctx.drawImage(video, x, y, size, size, 0, 0, size, size);
             
+            // Standard small size base64 to easily save in Firestore
             tempPlayerPicture = canvas.toDataURL('image/jpeg', 0.8);
             showPicturePreview();
             window.closeCamera();
@@ -914,9 +943,10 @@
             document.getElementById('picture-preview-container').classList.add('hidden');
         };
 
+        // Add Player
         document.getElementById('player-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) { window.showToast("Auth needed", true); return; }
+            if (!auth.currentUser || !publicPath) { window.showToast("Auth needed", true); return; }
 
             const nameInput = document.getElementById('player-name');
             const teamInput = document.getElementById('player-team');
@@ -931,11 +961,10 @@
                 const status = currentRole === 'Admin' ? 'approved' : 'pending';
                 
                 try {
-                    // 1. Show loading state & disable button
                     submitBtn.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> Saving...';
                     submitBtn.disabled = true;
 
-                    // 2. Attempt to save to Firebase with a 5-second timeout safety net
+                    // Promise race to force a timeout if Firebase is locked/unresponsive
                     const savePromise = addDoc(collection(db, publicPath, 'players'), {
                         name: name,
                         team: team,
@@ -948,34 +977,27 @@
                         setTimeout(() => reject(new Error("Timeout")), 5000)
                     );
 
-                    // This will force an error if Firebase ignores the request for 5 seconds
                     await Promise.race([savePromise, timeoutPromise]);
                     
-                    // 3. If successful, clear the form
                     nameInput.value = ''; teamInput.value = ''; infoInput.value = '';
                     window.clearPicture();
                     
-                    // 4. Reset the button text back to normal
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
                     
-                    // 5. Trigger the Success Pop-up Modal
                     if (status === 'approved') {
                         window.openSuccessModal("Player Added!", `"${name}" has been successfully added to the active roster.`);
                     } else {
                         window.openSuccessModal("Application Submitted!", "Your profile has been submitted successfully and is awaiting Admin approval.");
                     }
-
                 } catch(err) {
                     console.error(err);
-                    // Reset the button if it fails
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
-                    
                     if (err.message === "Timeout") {
                         window.showToast("Cloud Timeout: Please check your Firestore Security Rules.", true);
                     } else {
-                        window.showToast("Failed to save player to cloud.", true);
+                        window.showToast("Failed to save player to cloud", true);
                     }
                 }
             }
@@ -1048,9 +1070,10 @@
             );
         };
 
+        // Add Event
         document.getElementById('event-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) return;
+            if (!auth.currentUser || !publicPath) return;
             
             if (currentRole === 'Home Owner') {
                 const todayStr = new Date().toDateString();
@@ -1086,9 +1109,10 @@
             }
         });
 
+        // Add / Update Match
         document.getElementById('match-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!auth.currentUser) return;
+            if (!auth.currentUser || !publicPath) return;
             
             const eventId = document.getElementById('match-event').value;
             if (!eventId) { window.showToast("Please select an event", true); return; }
@@ -1203,6 +1227,7 @@
             );
         };
 
+        // --- RENDERING VIEWS ---
         function renderAll() {
             renderPlayers();
             renderEvents();
@@ -1375,7 +1400,6 @@
             [...appData.matches].reverse().forEach(m => {
                 const event = getEventInfo(m.eventId);
                 
-                // Format event name together with date
                 const eventDateObj = event.date ? new Date(event.date) : null;
                 const eventDateStr = eventDateObj && !isNaN(eventDateObj) ? eventDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
                 const eventBadgeLabel = eventDateStr ? `${event.name} (${eventDateStr})` : event.name;
@@ -1421,7 +1445,7 @@
                     </div>
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div class="flex-1 text-center sm:text-right w-full">
-                            <span class="${t1Winner ? 'font-bold text-blue-700' : 'text-slate-600'} block">${t1Names}</span>
+                            <span class="${t1Winner ? 'font-bold text-blue-700' : 'text-slate-600'} block truncate">${t1Names}</span>
                         </div>
                         
                         <div class="flex items-center justify-center gap-1 shrink-0 overflow-x-auto max-w-full pb-1 sm:pb-0 hide-scrollbar">
@@ -1429,7 +1453,7 @@
                         </div>
 
                         <div class="flex-1 text-center sm:text-left w-full">
-                            <span class="${t2Winner ? 'font-bold text-rose-700' : 'text-slate-600'} block">${t2Names}</span>
+                            <span class="${t2Winner ? 'font-bold text-rose-700' : 'text-slate-600'} block truncate">${t2Names}</span>
                         </div>
                     </div>
                 `;
